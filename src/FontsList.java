@@ -16,6 +16,8 @@ public class FontsList extends ListView {
   public FontsList() {
     setCellFactory(list -> new FontNameCell());
     getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+    setPrefHeight(Double.MAX_VALUE);
+    setPrefWidth(300);
   }
 
   public void loadSystemFonts() {
@@ -25,14 +27,14 @@ public class FontsList extends ListView {
 
   static class FontNameCell extends ListCell<String> {
     public FontNameCell() {
-      setPrefHeight(100);
+      setPrefHeight(60);
       setAlignment(Pos.CENTER);
     }
 
     @Override
     public void updateItem(String item, boolean empty) {
       super.updateItem(item, empty);
-      setFont(Font.font(item, FontWeight.NORMAL, 20));
+      setFont(Font.font(item, FontWeight.NORMAL, 12));
       setTextAlignment(TextAlignment.CENTER);
       setText(item);
     }
