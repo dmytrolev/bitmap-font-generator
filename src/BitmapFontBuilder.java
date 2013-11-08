@@ -14,6 +14,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.effect.Shadow;
 import javafx.geometry.VPos;
+import javafx.beans.value.ObservableValue;
 import java.util.Set;
 
 public class BitmapFontBuilder extends Application {
@@ -33,11 +34,7 @@ public class BitmapFontBuilder extends Application {
 
     mFontsList = new FontsList();
     mFontsList.loadSystemFonts();
-    mFontsList.getSelectionModel().selectedItemProperty()
-      .addListener((ov, oldv, newv) -> {
-          mFont = (String)newv;
-          drawText();
-            });
+    mFontsList.getSelectionModel().selectedItemProperty().addListener(this::onFontSelectChange);
 
     mText = new TextArea("dima loves alina");
     mText.setPrefWidth(200);
@@ -56,6 +53,11 @@ public class BitmapFontBuilder extends Application {
     stage.setScene(new Scene(root, 960, 600));
 
     stage.show();
+  }
+
+  protected void onFontSelectChange(ObservableValue ov, Object oldv, Object newv) {
+    mFont = (String)newv;
+    drawText();
   }
 
   protected void drawText() {
