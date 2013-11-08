@@ -16,12 +16,10 @@ public class FontsList extends ListView {
   public FontsList() {
     setCellFactory(list -> new FontNameCell());
     getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-    setPrefHeight(Double.MAX_VALUE);
-    setPrefWidth(300);
   }
 
   public void loadSystemFonts() {
-    ObservableList fonts = FXCollections.observableArrayList(Font.getFontNames());
+    ObservableList fonts = FXCollections.observableArrayList(Font.getFamilies());
     setItems(fonts);
   }
 
