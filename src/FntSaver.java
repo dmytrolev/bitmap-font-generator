@@ -19,7 +19,8 @@ public class FntSaver {
   protected final String CHAR =
     "char id=%d x=%.0f y=%.0f width=%.0f height=%.0f xoffset=%d yoffset=%d xadvance=%d page=%d chnl=%d letter=\"%s\"";
 
-  public FntSaver(final Set<GlyphBank.Glyph> glyphs) {
+  public FntSaver(final GlyphBank gb) {
+    Set<GlyphBank.Glyph> glyphs = gb.glyphs();
     Path file = Paths.get("my-font.fnt");
     try(BufferedWriter writer = Files.newBufferedWriter(file, Charset.forName("UTF-8"))) {
       String s = String.format(INFO, "my-font", 40, 0, 0, "", 0, 100, 1, 1, 0,0,0,0,0,0);

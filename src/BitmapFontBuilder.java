@@ -11,6 +11,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.CheckBox;
@@ -35,6 +36,7 @@ import javafx.event.Event;
 import java.util.Set;
 import java.util.List;
 import java.io.File;
+import java.net.URL;
 
 public class BitmapFontBuilder extends Application {
   protected FontsList mFontsList;
@@ -48,6 +50,8 @@ public class BitmapFontBuilder extends Application {
   protected Slider mStrokeWidth;
   protected CheckBox mStrokeCb;
   protected CheckBox mShowBorderCb;
+  protected Slider mPaddingX;
+  protected Slider mPaddingY;
   protected String mFont = "Calibri";
   protected String mFamily = "Calibri";
 
@@ -61,15 +65,23 @@ public class BitmapFontBuilder extends Application {
   public void start(Stage stage) {
     stage.setTitle("Bitmap Font Generator");
 
+    URL url = this.getClass().getClassLoader().getResource("fontello.ttf");
+    Font awesome = Font.loadFont(url.toString(), 30);
+
     // Top section
     Button saveBtn = new Button("");
-    saveBtn.setFont(Font.loadFont("file:///media/stuff/docs/java/bitmap-font-generator/fontello.ttf", 30));
+    saveBtn.setFont(awesome);
     saveBtn.setTooltip(new Tooltip("Save Bitmap Font to File"));
     saveBtn.setOnAction(event -> saveFont());
 
+    Button importBtn = new Button("");
+    importBtn.setFont(awesome);
+    importBtn.setTooltip(new Tooltip("Import Font From Local File"));
+    importBtn.setOnAction(event -> importFont());
+
     HBox topBox = new HBox(15d);
     topBox.setPadding(new Insets(5d));
-    topBox.getChildren().addAll(saveBtn);
+    topBox.getChildren().addAll(saveBtn, importBtn);
 
     // Fonts section
     mFontsList = new FontsList();
@@ -95,18 +107,26 @@ public class BitmapFontBuilder extends Application {
     TitledPane fontHost = new TitledPane("Font", fontBox);
 
     // Text section
-    mText = new TextArea("dima loves alina");
+    mText = new TextArea("Put any symbols you will need in your application here!");
+    mText.setWrapText(true);
     VBox.setVgrow(mText, Priority.ALWAYS);
     mText.setPrefWidth(200d);
 
     Button update = new Button("Update Glyphs");
     update.setOnAction(event -> drawText());
 
+    Button ascii = new Button("ASCII");
+    ascii.setOnAction(event -> setASCIISymbols());
+
+    HBox textActions = new HBox(10d);
+    textActions.getChildren().addAll(update, ascii);
+
     VBox textBox = new VBox();
     textBox.setSpacing(15d);
-    textBox.getChildren().addAll(mText, update);
+    textBox.getChildren().addAll(mText, textActions);
 
     TitledPane textHost = new TitledPane("Glyphs", textBox);
+    textHost.setMinHeight(150d);
 
     // Left section assemble
     VBox leftBox = new VBox();
@@ -152,26 +172,46 @@ public class BitmapFontBuilder extends Application {
     mShowBorderCb = new CheckBox("Show glyph border");
     mShowBorderCb.setOnAction(event -> drawText());
 
+    mPaddingX = new Slider(0d, 10d, 1d);
+    mPaddingX.setShowTickMarks(true);
+    mPaddingX.setShowTickLabels(true);
+    mPaddingX.setMajorTickUnit(2d);
+    mPaddingX.setBlockIncrement(1d);
+    mPaddingX.valueProperty().addListener((ov, oldv, newv) -> drawText());
+
+    mPaddingY = new Slider(0d, 10d, 1d);
+    mPaddingY.setShowTickMarks(true);
+    mPaddingY.setShowTickLabels(true);
+    mPaddingY.setMajorTickUnit(2d);
+    mPaddingY.setBlockIncrement(1d);
+    mPaddingY.valueProperty().addListener((ov, oldv, newv) -> drawText());
+
     VBox settingsBox = new VBox();
     settingsBox.setSpacing(15d);
-    settingsBox.getChildren().addAll(mShowBorderCb);
+    settingsBox.getChildren().addAll(mShowBorderCb,
+                                     new Label("Horizontal padding:"), mPaddingX,
+                                     new Label("Vertical padding:"), mPaddingY);
 
     TitledPane settingsHost = new TitledPane("Settings", settingsBox);
 
     // Right section assemble
     VBox rightBox = new VBox();
-    rightBox.setMinWidth(200d);
+    rightBox.setMinWidth(300d);
     rightBox.getChildren().addAll(fillHost, strokeHost, settingsHost);
 
     // Center section
-    mCanvas = new Canvas(512, 512);
-    drawText();
+    mCanvas = new Canvas(1024, 1024);
+
+    ScrollPane canvasContainer = new ScrollPane();
+    canvasContainer.setContent(mCanvas);
 
     // All sections
     BorderPane root = new BorderPane();
+    TitledPane t = new TitledPane("Image", canvasContainer);
+    t.setPrefHeight(Double.MAX_VALUE);
     root.setTop(topBox);
     root.setLeft(leftBox);
-    root.setCenter(new TitledPane("Image", mCanvas));
+    root.setCenter(t);
     root.setRight(rightBox);
     root.setPrefWidth(Double.MAX_VALUE);
     root.setPrefHeight(Double.MAX_VALUE);
@@ -181,8 +221,21 @@ public class BitmapFontBuilder extends Application {
     stage.setScene(new Scene(root, 960, 600));
 
     stage.show();
+    drawText();
 
     mStage = stage;
+  }
+
+  protected void importFont() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("True Type Font", "*.ttf"));
+    fileChooser.setTitle("Load font file");
+    File fontFile = fileChooser.showOpenDialog(mStage);
+    if(null == fontFile) return;
+
+    Font newFont = Font.loadFont(fontFile.toURI().toString(), 20d);
+    mFontsList.getItems().add(newFont.getFamily());
+    mFontsList.getSelectionModel().selectLast();
   }
 
   protected void saveFont() {
@@ -200,7 +253,7 @@ public class BitmapFontBuilder extends Application {
     pp.setFill(new Color(0d, 0d, 0d, 0d));
     toSave.snapshot(result -> {
         new BitmapSaver(result.getImage(), saveFile);
-        new XmlSaver(mGlyphBank.glyphs(), saveFile);
+        new XmlSaver(mGlyphBank, saveFile);
         return null;
       }, pp, new WritableImage((int)mGlyphBank.size, (int)mGlyphBank.size));
   }
@@ -220,9 +273,14 @@ public class BitmapFontBuilder extends Application {
   }
 
   protected void onSubFontSelectChange(ObservableValue ov, Object oldv, Object newv) {
+    if(null == newv) return;
     String subtype = (String)newv;
     mFont = mFamily + (" default".equals(subtype) ? "" : subtype);
-    System.out.println(mFont);
+    drawText();
+  }
+
+  protected void setASCIISymbols() {
+    mText.setText("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890,.:;?!-_'\"\\|/[]{}+=*&%$@~#^><");
     drawText();
   }
 
@@ -230,7 +288,12 @@ public class BitmapFontBuilder extends Application {
     GraphicsContext gc = mCanvas.getGraphicsContext2D();
     // build glyphs
     mGlyphBank.setFont(getFont());
+    mGlyphBank.paddingX = mPaddingX.getValue();
+    mGlyphBank.paddingY = mPaddingY.getValue();
     mGlyphBank.extract(mText.getText());
+    // resize canvas
+    mCanvas.setWidth(mGlyphBank.size);
+    mCanvas.setHeight(mGlyphBank.size);
     // prepare background
     gc.clearRect(0, 0, Double.MAX_VALUE, Double.MAX_VALUE);
     gc.setFill(Color.WHITE);
@@ -252,34 +315,28 @@ public class BitmapFontBuilder extends Application {
   protected void drawGlyphs(GraphicsContext gc, GlyphBank gb) {
     gc.setFont(getFont());
     Set<GlyphBank.Glyph> chars = gb.glyphs();
-    double x = 0; double y = 0;
     for(GlyphBank.Glyph cc : chars) {
-      if(x + cc.w > mGlyphBank.size) {
-        x = 0;
-        y += cc.h;
-      }
-      cc.x = x;
-      cc.y = y;
-      gc.setTextBaseline(VPos.BOTTOM);
+      gc.setTextBaseline(VPos.BASELINE);
+      double x = cc.x - cc.w1;
+      double y = cc.y + cc.h1;
       if(mEffect) {
         gc.setEffect(new Shadow(5, Color.BLACK));
-        gc.fillText(cc.c, x, y + cc.h);
+        gc.fillText(cc.c, x, y);
         gc.setEffect(null);
       }
       if(mFillCb.isSelected()) {
         gc.setFill(mFillColor.getValue());
-        gc.fillText(cc.c, x, y + cc.h);
+        gc.fillText(cc.c, x, y);
       }
       if(mStrokeCb.isSelected() && mStrokeWidth.getValue() > 0) {
         gc.setLineWidth(mStrokeWidth.getValue());
         gc.setStroke(mStrokeColor.getValue());
-        gc.strokeText(cc.c, x, y + cc.h);
+        gc.strokeText(cc.c, x, y);
       }
       if(mShowBorderCb.isSelected()) {
         gc.setLineWidth(1d);
-        gc.strokeRect(x,y,cc.w,cc.h);
+        gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
       }
-      x += cc.w;
     }
   }
 

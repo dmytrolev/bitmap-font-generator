@@ -15,12 +15,12 @@
   </target>
 
   <target name="compile" depends="init" description="compile the source" >
-    <javac debuglevel="lines,vars,source" debug="on" srcdir="${src}" destdir="${build}"/>
+    <javac debuglevel="lines,vars,source" debug="on" srcdir="${src}" destdir="${build}" />
   </target>
 
   <target name="dist" depends="compile" description="generate the distribution" >
     <mkdir dir="${dist}/lib"/>
-
+    <copy file="res/fontello.ttf" tofile="build/fontello.ttf" />
     <jar jarfile="${dist}/lib/MyProject-${DSTAMP}.jar" basedir="${build}" manifest="${manifest-file}" />
   </target>
 

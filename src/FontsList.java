@@ -15,7 +15,6 @@ public class FontsList extends ListView {
 
   public FontsList() {
     setCellFactory(list -> new FontNameCell());
-    getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
   }
 
   public void loadSystemFonts() {
