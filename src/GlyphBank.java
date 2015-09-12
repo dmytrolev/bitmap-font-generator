@@ -39,7 +39,7 @@ public class GlyphBank {
     public int compareTo(Glyph g) { return c.compareTo(g.c); }
   }
 
-  protected Font mFont;
+  protected javafx.scene.text.Font mFont;
 
   protected Set<Glyph> mGlyphs = new TreeSet<Glyph>();
 
@@ -48,9 +48,9 @@ public class GlyphBank {
   public GlyphBank() {
   }
 
-  public Font getFont() { return mFont; }
+  public javafx.scene.text.Font getFont() { return mFont; }
 
-  public void setFont(Font font) { mFont = font; }
+  public void setFont(javafx.scene.text.Font font) { mFont = font; }
 
   public void extract(String text) {
     mGlyphs.clear();
