@@ -29,13 +29,14 @@ public class XmlSaver {
         writer.write(s1, 0, s1.length());
         writer.newLine();
       }
-      s = String.format(INFO, "my-font", gb.getFont().getSize(), 0, 0, "", 0, 100, 1, 1, 0,0,0,0,0,0);
+      String fontName = file.toPath().getFileName().toString().replace(".fnt", "");
+      s = String.format(INFO, fontName, gb.getFont().getSize(), 0, 0, "", 0, 100, 1, 1, 0,0,0,0,0,0);
       writer.write(s, 0, s.length());
       writer.newLine();
       s = String.format(COMMON, gb.lineHeight, gb.baseLine, 128, 64, 1, 0);
       writer.write(s, 0, s.length());
       writer.newLine();
-      s = String.format(PAGE, 0, "font.png");
+      s = String.format(PAGE, 0, fontName + ".png");
       writer.write(s, 0, s.length());
       writer.newLine();
       s = String.format(CHARS, glyphs.size());

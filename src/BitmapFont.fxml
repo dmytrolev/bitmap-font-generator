@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.canvas.*?>
 <?import javafx.scene.control.*?>
 <?import java.lang.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minWidth="-Infinity" prefWidth="703.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="BitmapFontController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="438.0" prefWidth="703.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="BitmapFontController">
    <top>
       <HBox prefHeight="46.0" prefWidth="600.0" style="-fx-spacing: 15;" BorderPane.alignment="CENTER">
          <children>
-            <Button mnemonicParsing="false" onAction="#saveFont" prefHeight="47.0" prefWidth="52.0" text="save" />
+            <Button mnemonicParsing="false" onAction="#saveFont" prefHeight="47.0" prefWidth="52.0" text="Save" />
+            <Button mnemonicParsing="false" onAction="#saveBoxes" prefHeight="47.0" text="Save Boxes" />
             <Button mnemonicParsing="false" onAction="#importFont" prefHeight="46.0" prefWidth="105.0" text="Import Font" />
          </children>
       </HBox>
@@ -32,7 +35,7 @@
                         </RadioButton>
                         <RadioButton mnemonicParsing="false" text="SpriteSheet XML" toggleGroup="$format" />
                         <Label text="Image Size" />
-                        <CheckBox mnemonicParsing="false" selected="true" text="Force Square" />
+                        <CheckBox mnemonicParsing="false" onAction="#drawText" selected="true" text="Force Square" />
                      </children>
                   </VBox>
                </content>
@@ -56,8 +59,17 @@
                <content>
                   <VBox prefWidth="200.0" style="-fx-spacing: 15;">
                      <children>
-                        <ComboBox fx:id="mSubFont" onAction="#drawText" prefWidth="100.0" scaleShape="false" />
-                        <Slider fx:id="mFontSize" blockIncrement="1.0" max="64.0" min="5.0" minorTickCount="4" onMouseDragReleased="#drawText" prefHeight="44.0" prefWidth="180.0" showTickLabels="true" showTickMarks="true" snapToTicks="true" value="16.0" />
+                        <HBox prefHeight="25.0" prefWidth="180.0">
+                           <children>
+                              <ComboBox fx:id="mSubFont" onAction="#drawText" prefWidth="100.0" scaleShape="false" />
+                              <TextField fx:id="mFontSizeText" prefHeight="25.0" prefWidth="70.0" HBox.hgrow="ALWAYS">
+                                 <HBox.margin>
+                                    <Insets left="5.0" />
+                                 </HBox.margin>
+                              </TextField>
+                           </children>
+                        </HBox>
+                        <Slider fx:id="mFontSize" blockIncrement="1.0" majorTickUnit="10.0" max="64.0" min="5.0" onMouseDragReleased="#drawText" prefHeight="44.0" prefWidth="180.0" showTickLabels="true" showTickMarks="true" snapToTicks="true" value="16.0" />
                         <ListView fx:id="mFontsList" />
                      </children>
                   </VBox>
@@ -87,8 +99,17 @@
                <content>
                   <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-spacing: 15;">
                      <children>
-                        <CheckBox fx:id="mStrokeCb" mnemonicParsing="false" onAction="#drawText" text="Use Stroke" />
-                        <Slider fx:id="mStrokeWidth" blockIncrement="2.0" majorTickUnit="2.0" max="10.0" minorTickCount="1" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="1.0" />
+                        <HBox prefHeight="27.0" prefWidth="180.0">
+                           <children>
+                              <CheckBox fx:id="mStrokeCb" mnemonicParsing="false" onAction="#drawText" text="Use Stroke" />
+                              <TextField fx:id="mStrokeWidthText" prefHeight="25.0" prefWidth="68.0" HBox.hgrow="ALWAYS">
+                                 <HBox.margin>
+                                    <Insets left="5.0" />
+                                 </HBox.margin>
+                              </TextField>
+                           </children>
+                        </HBox>
+                        <Slider fx:id="mStrokeWidth" blockIncrement="0.5" majorTickUnit="2.0" max="10.0" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="1.0" />
                         <ColorPicker fx:id="mStrokeColor" onAction="#drawText" />
                      </children>
                   </VBox>
@@ -99,10 +120,28 @@
                   <VBox prefHeight="205.0" prefWidth="200.0" style="-fx-spacing: 15;">
                      <children>
                         <CheckBox fx:id="mShowBorderCb" mnemonicParsing="false" onAction="#drawText" text="Show borders" />
-                        <Label text="Horizontal Padding" />
-                        <Slider fx:id="mPaddingX" blockIncrement="2.0" majorTickUnit="2.0" max="10.0" minorTickCount="1" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="2.0" />
-                        <Label text="Vertical Padding" />
-                        <Slider fx:id="mPaddingY" blockIncrement="2.0" majorTickUnit="2.0" max="10.0" minorTickCount="1" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="2.0" />
+                        <HBox prefHeight="27.0" prefWidth="180.0">
+                           <children>
+                              <Label text="Horizontal Padding" />
+                              <TextField fx:id="mPaddingXText" prefHeight="25.0" prefWidth="66.0" HBox.hgrow="ALWAYS">
+                                 <HBox.margin>
+                                    <Insets left="5.0" />
+                                 </HBox.margin>
+                              </TextField>
+                           </children>
+                        </HBox>
+                        <Slider fx:id="mPaddingX" blockIncrement="0.5" majorTickUnit="2.0" max="10.0" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="2.0" />
+                        <HBox prefHeight="27.0" prefWidth="180.0">
+                           <children>
+                              <Label text="Vertical Padding" />
+                              <TextField fx:id="mPaddingYText" prefHeight="25.0" prefWidth="70.0" HBox.hgrow="ALWAYS">
+                                 <HBox.margin>
+                                    <Insets left="5.0" />
+                                 </HBox.margin>
+                              </TextField>
+                           </children>
+                        </HBox>
+                        <Slider fx:id="mPaddingY" blockIncrement="0.5" majorTickUnit="2.0" max="10.0" onDragDone="#drawText" showTickLabels="true" showTickMarks="true" value="2.0" />
                      </children>
                   </VBox>
                </content>

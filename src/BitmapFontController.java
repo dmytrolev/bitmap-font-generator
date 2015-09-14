@@ -4,6 +4,7 @@ import javafx.scene.control.ColorPicker;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
@@ -48,15 +49,19 @@ public class BitmapFontController implements Initializable {
 
   public CheckBox mStrokeCb;
   public Slider mStrokeWidth;
+  public TextField mStrokeWidthText;
   public ColorPicker mStrokeColor;
 
   public TextArea mText;
   public Slider mFontSize;
+  public TextField mFontSizeText;
   public ListView mFontsList;
 
   public CheckBox mShowBorderCb;
   public Slider mPaddingX;
+  public TextField mPaddingXText;
   public Slider mPaddingY;
+  public TextField mPaddingYText;
 
   public Canvas mCanvas;
 
@@ -89,7 +94,21 @@ public class BitmapFontController implements Initializable {
     mSubFont.getSelectionModel().selectedItemProperty().addListener(this::onSubFontSelectChange);
     mFillColor.setValue(Color.BLACK);
 
+    mFontSize.valueProperty().addListener((ov, oldv, newv) -> drawText());
+    mStrokeWidth.valueProperty().addListener((ov, oldv, newv) -> drawText());
+    mPaddingX.valueProperty().addListener((ov, oldv, newv) -> drawText());
+    mPaddingY.valueProperty().addListener((ov, oldv, newv) -> drawText());
+
+    initSlidersValues();
+
     setASCIISymbols();
+  }
+
+  protected void initSlidersValues() {
+    mStrokeWidthText.textProperty().bind(mStrokeWidth.valueProperty().asString());
+    mFontSizeText.textProperty().bind(mFontSize.valueProperty().asString());
+    mPaddingXText.textProperty().bind(mPaddingX.valueProperty().asString());
+    mPaddingYText.textProperty().bind(mPaddingY.valueProperty().asString());
   }
 
   protected void onFontSelectChange(ObservableValue ov, Object oldv, Object newv) {
@@ -138,7 +157,7 @@ public class BitmapFontController implements Initializable {
     gc.fillRect(0, 0, mGlyphBank.size, mGlyphBank.size);
     gc.strokeRect(0, 0, mGlyphBank.size, mGlyphBank.size);
     // print glyphs
-    drawGlyphs(gc, mGlyphBank);
+    drawGlyphs(gc, mGlyphBank, false);
   }
 
   public void saveFont(ActionEvent event) {
@@ -151,12 +170,34 @@ public class BitmapFontController implements Initializable {
 
     Canvas toSave = new Canvas(mGlyphBank.size, mGlyphBank.size);
     toSave.getGraphicsContext2D().clearRect(0, 0, mGlyphBank.size, mGlyphBank.size);
-    drawGlyphs(toSave.getGraphicsContext2D(), mGlyphBank);
+    drawGlyphs(toSave.getGraphicsContext2D(), mGlyphBank, true);
     SnapshotParameters pp = new SnapshotParameters();
     pp.setFill(new Color(0d, 0d, 0d, 0d));
     toSave.snapshot(result -> {
         new BitmapSaver(result.getImage(), saveFile);
         new XmlSaver(mGlyphBank, saveFile);
+        return null;
+      }, pp, new WritableImage((int)mGlyphBank.size, (int)mGlyphBank.size));
+  }
+
+  public void saveBoxes(ActionEvent event) {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image File", "*.png"));
+    fileChooser.setTitle("Save bitmap font bounding boxes");
+    fileChooser.setInitialFileName("font-boxes.png");
+    File saveFile = fileChooser.showSaveDialog(mStage);
+    if(null == saveFile) return;
+
+    Canvas toSave = new Canvas(mGlyphBank.size, mGlyphBank.size);
+    GraphicsContext gc = toSave.getGraphicsContext2D();
+    toSave.getGraphicsContext2D().clearRect(0, 0, mGlyphBank.size, mGlyphBank.size);
+    gc.setLineWidth(1d);
+    gc.setStroke(Color.GREEN);
+    drawBoundingBoxes(toSave.getGraphicsContext2D(), mGlyphBank);
+    SnapshotParameters pp = new SnapshotParameters();
+    pp.setFill(new Color(0d, 0d, 0d, 0d));
+    toSave.snapshot(result -> {
+        new BitmapSaver(result.getImage(), saveFile);
         return null;
       }, pp, new WritableImage((int)mGlyphBank.size, (int)mGlyphBank.size));
   }
@@ -173,7 +214,7 @@ public class BitmapFontController implements Initializable {
     mFontsList.getSelectionModel().selectLast();
   }
 
-  protected void drawGlyphs(GraphicsContext gc, GlyphBank gb) {
+  protected void drawGlyphs(GraphicsContext gc, GlyphBank gb, boolean hideBorder) {
     gc.setFont(getFont());
     System.out.println("Trying font " + gc.getFont().getName());
     java.awt.Font otherFont = new java.awt.Font(gc.getFont().getName(), java.awt.Font.PLAIN,
@@ -184,14 +225,14 @@ public class BitmapFontController implements Initializable {
       FontRenderContext frc = new FontRenderContext(new AffineTransform(1,0,0,1,0,0), false, false);
       GlyphVector glyphs = otherFont.createGlyphVector(frc, cc.c.toCharArray());
       GlyphMetrics metrix = glyphs.getGlyphMetrics(0);
-      System.out.println(String.format("%6$b advance=%1$.2f advanceX=%2$.2f advanceY=%3$.2g LSB=%4$.2g RSB=%5$.2g, " +
-                                       "%7$b %8$b %9$b %10$b X=%11$.2f Y=%12$.2f %13$c w=%14$.2f h=%15$.2f",
-                                       metrix.getAdvance(), metrix.getAdvanceX(), metrix.getAdvanceY(),
-                                       metrix.getLSB(), metrix.getRSB(), otherFont.canDisplay(cc.c.toCharArray()[0]),
-                                       metrix.isCombining(), metrix.isComponent(),
-                                       metrix.isLigature(), metrix.isStandard(),
-                                       metrix.getBounds2D().getX(), metrix.getBounds2D().getY(), cc.c.toCharArray()[0],
-                                       metrix.getBounds2D().getWidth(), metrix.getBounds2D().getHeight()));
+      // System.out.println(String.format("%6$b advance=%1$.2f advanceX=%2$.2f advanceY=%3$.2g LSB=%4$.2g RSB=%5$.2g, " +
+      //                                  "%7$b %8$b %9$b %10$b X=%11$.2f Y=%12$.2f %13$c w=%14$.2f h=%15$.2f",
+      //                                  metrix.getAdvance(), metrix.getAdvanceX(), metrix.getAdvanceY(),
+      //                                  metrix.getLSB(), metrix.getRSB(), otherFont.canDisplay(cc.c.toCharArray()[0]),
+      //                                  metrix.isCombining(), metrix.isComponent(),
+      //                                  metrix.isLigature(), metrix.isStandard(),
+      //                                  metrix.getBounds2D().getX(), metrix.getBounds2D().getY(), cc.c.toCharArray()[0],
+      //                                  metrix.getBounds2D().getWidth(), metrix.getBounds2D().getHeight()));
 
       gc.setTextBaseline(VPos.BASELINE);
       double x = cc.x - cc.w1;
@@ -210,10 +251,19 @@ public class BitmapFontController implements Initializable {
         gc.setStroke(mStrokeColor.getValue());
         gc.strokeText(cc.c, x, y);
       }
-      if(mShowBorderCb.isSelected()) {
+      if(mShowBorderCb.isSelected() && !hideBorder) {
         gc.setLineWidth(1d);
+        gc.setStroke(Color.GREEN);
         gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
       }
+    }
+  }
+
+  protected void drawBoundingBoxes(GraphicsContext gc, GlyphBank gb) {
+    gc.setFont(getFont());
+    for(GlyphBank.Glyph cc : gb.glyphs()) {
+      gc.setLineWidth(1d);
+      gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
     }
   }
 
