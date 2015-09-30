@@ -17,6 +17,7 @@
   <target name="compile" depends="init" description="compile the source" >
     <javac debuglevel="lines,vars,source" debug="on" srcdir="${src}" destdir="${build}" />
     <copy file="${src}/BitmapFont.fxml" tofile="${build}/BitmapFont.fxml" />
+    <copy file="${src}/CustomImageSymbol.fxml" tofile="${build}/CustomImageSymbol.fxml" />
   </target>
 
   <target name="dist" depends="compile" description="generate the distribution" >

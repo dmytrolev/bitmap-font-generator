@@ -8,6 +8,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.effect.Shadow;
@@ -24,8 +25,10 @@ import javafx.geometry.Pos;
 import javafx.stage.Stage;
 import javafx.stage.FileChooser;
 import javafx.fxml.Initializable;
+import javafx.fxml.FXML;
 import javafx.beans.value.ObservableValue;
 import java.io.File;
+import java.nio.file.FileSystems;
 
 import java.awt.font.GlyphMetrics;
 import java.awt.font.GlyphVector;
@@ -42,30 +45,29 @@ public class BitmapFontController implements Initializable {
 
   protected boolean mEffect = false;
 
-  public CheckBox mFillCb;
-  public ColorPicker mFillColor;
+  @FXML public CheckBox mFillCb;
+  @FXML public ColorPicker mFillColor;
 
-  public ComboBox mSubFont;
+  @FXML public ComboBox mSubFont;
 
-  public CheckBox mStrokeCb;
-  public Slider mStrokeWidth;
-  public TextField mStrokeWidthText;
-  public ColorPicker mStrokeColor;
+  @FXML public CheckBox mStrokeCb;
+  @FXML public TextField mStrokeWidthText;
+  @FXML public ColorPicker mStrokeColor;
 
-  public TextArea mText;
-  public Slider mFontSize;
-  public TextField mFontSizeText;
-  public ListView mFontsList;
+  @FXML public TextArea mText;
+  @FXML public TextField mFontSizeText;
+  @FXML public ListView mFontsList;
 
-  public CheckBox mShowBorderCb;
-  public Slider mPaddingX;
-  public TextField mPaddingXText;
-  public Slider mPaddingY;
-  public TextField mPaddingYText;
+  @FXML public FlowPane mCustomImages;
+  @FXML public TextField mCustomImageLetter;
 
-  public Canvas mCanvas;
+  @FXML public CheckBox mShowBorderCb;
+  @FXML public TextField mPaddingXText;
+  @FXML public TextField mPaddingYText;
 
-  public Stage mStage;
+  @FXML public Canvas mCanvas;
+
+  @FXML public Stage mStage;
 
   protected String mFont = "Calibri";
   protected String mFamily = "Calibri";
@@ -94,21 +96,21 @@ public class BitmapFontController implements Initializable {
     mSubFont.getSelectionModel().selectedItemProperty().addListener(this::onSubFontSelectChange);
     mFillColor.setValue(Color.BLACK);
 
-    mFontSize.valueProperty().addListener((ov, oldv, newv) -> drawText());
-    mStrokeWidth.valueProperty().addListener((ov, oldv, newv) -> drawText());
-    mPaddingX.valueProperty().addListener((ov, oldv, newv) -> drawText());
-    mPaddingY.valueProperty().addListener((ov, oldv, newv) -> drawText());
-
-    initSlidersValues();
-
     setASCIISymbols();
   }
 
-  protected void initSlidersValues() {
-    mStrokeWidthText.textProperty().bind(mStrokeWidth.valueProperty().asString());
-    mFontSizeText.textProperty().bind(mFontSize.valueProperty().asString());
-    mPaddingXText.textProperty().bind(mPaddingX.valueProperty().asString());
-    mPaddingYText.textProperty().bind(mPaddingY.valueProperty().asString());
+  @FXML
+  protected void addCustomSymbol() {
+    FileChooser fileChooser = new FileChooser();
+    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Image file", "*.png;*.jpg;*.jpeg"));
+    fileChooser.setTitle("Add Image File");
+    File imageFile = fileChooser.showOpenDialog(mStage);
+    if(null == imageFile) return;
+    String url = imageFile.toPath().toUri().toString();
+
+    CustomImageSymbolController cisc = new CustomImageSymbolController(url, mCustomImageLetter.getText());
+    cisc.callback = mCustomImages.getChildren()::remove;
+    mCustomImages.getChildren().add(cisc);
   }
 
   protected void onFontSelectChange(ObservableValue ov, Object oldv, Object newv) {
@@ -143,8 +145,8 @@ public class BitmapFontController implements Initializable {
     GraphicsContext gc = mCanvas.getGraphicsContext2D();
     // build glyphs
     mGlyphBank.setFont(getFont());
-    mGlyphBank.paddingX = mPaddingX.getValue();
-    mGlyphBank.paddingY = mPaddingY.getValue();
+    mGlyphBank.paddingX = getValue(mPaddingXText, 0.0);
+    mGlyphBank.paddingY = getValue(mPaddingYText, 0.0);
     mGlyphBank.extract(mText.getText());
     // resize canvas
     mCanvas.setWidth(mGlyphBank.size);
@@ -246,8 +248,9 @@ public class BitmapFontController implements Initializable {
         gc.setFill(mFillColor.getValue());
         gc.fillText(cc.c, x, y);
       }
-      if(mStrokeCb.isSelected() && mStrokeWidth.getValue() > 0) {
-        gc.setLineWidth(mStrokeWidth.getValue());
+      Double strokeWidth = getValue(mStrokeWidthText, 1.0);
+      if(mStrokeCb.isSelected() && strokeWidth > 0) {
+        gc.setLineWidth(strokeWidth);
         gc.setStroke(mStrokeColor.getValue());
         gc.strokeText(cc.c, x, y);
       }
@@ -271,6 +274,18 @@ public class BitmapFontController implements Initializable {
     boolean bold = mFont.indexOf("Bold") >= 0;
     boolean oblique = mFont.indexOf("Oblique") >= 0 || mFont.indexOf("Italic") >= 0;
     return Font.font(mFont, bold ? FontWeight.BOLD : FontWeight.NORMAL,
-                     oblique ? FontPosture.ITALIC : FontPosture.REGULAR, mFontSize.getValue());
+                     oblique ? FontPosture.ITALIC : FontPosture.REGULAR, getValue(mFontSizeText, 14.0));
+  }
+
+  protected double getValue(TextField txt, double defVal) {
+    String sizeText = txt.getText();
+    double size = defVal;
+    if(null != sizeText && !sizeText.isEmpty()) {
+      try {
+        size = Double.parseDouble(sizeText);
+      } catch(NumberFormatException e) { }
+    }
+    if(size < 0.0) size = defVal;
+    return size;
   }
 }

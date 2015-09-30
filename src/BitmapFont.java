@@ -20,7 +20,8 @@ public class BitmapFont extends Application {
       ioe.printStackTrace();
       return;
     }
-    stage.setScene(new Scene(root, 960, 600));
+    Scene scene = new Scene(root, 960, 600);
+    stage.setScene(scene);
     ((BitmapFontController)fxmlLoader.getController()).mStage = stage;
     stage.show();
   }
