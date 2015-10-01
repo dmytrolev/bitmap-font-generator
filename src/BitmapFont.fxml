@@ -51,6 +51,7 @@
                               <Button mnemonicParsing="false" onAction="#setASCIISymbols" text="ASCII" />
                            </children>
                         </HBox>
+                        <CheckBox fx:id="mAlwaysAddSpace" mnemonicParsing="false" selected="true" text="Always add space" />
                         <FlowPane fx:id="mCustomImages" hgap="8.0" prefHeight="200.0" prefWidth="200.0" vgap="8.0" />
                         <HBox prefHeight="100.0" prefWidth="200.0">
                            <children>

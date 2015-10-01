@@ -18,6 +18,9 @@ public class CustomImageSymbolController extends VBox {
   @FXML private Canvas image;
   @FXML private Label letter;
 
+  public Image img;
+  public String letterSymbol;
+
   public static interface DelEventListener extends EventListener {
     public void run(CustomImageSymbolController me);
   }
@@ -36,8 +39,9 @@ public class CustomImageSymbolController extends VBox {
     }
 
     this.letter.setText(letter);
+    letterSymbol = letter;
 
-    Image img = new Image(url, false);
+    img = new Image(url, false);
     if(img.getWidth() > image.getWidth() || img.getHeight() > image.getHeight()) {
       image.getGraphicsContext2D().drawImage(img, 0,0,image.getWidth(),image.getHeight());
     } else image.getGraphicsContext2D().drawImage(img, Math.floor((image.getWidth() - img.getWidth()) / 2), Math.floor((image.getHeight() - img.getHeight()) / 2));

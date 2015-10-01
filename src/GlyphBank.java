@@ -7,14 +7,20 @@ import javafx.scene.text.Text;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextBoundsType;
+import javafx.scene.image.Image;
 
 public class GlyphBank {
   public double size;
+  public double total;
   public double lineHeight;
   public double baseLine;
+  public double strokeSize;
 
   public double paddingX = 2;
   public double paddingY = 2;
+
+  public double innerPaddingX = 2;
+  public double innerPaddingY = 2;
 
   public static class Glyph implements Comparable<Glyph> {
     public final String c;
@@ -23,16 +29,20 @@ public class GlyphBank {
     public final double w1;
     public final double h;
     public final double h1;
+    public final Image image;
+    public final double margin;
     public double x;
     public double y;
     public Glyph(String symbol, double width, double logicalWidth, double height,
-                 double overbaseline, double moveright) {
+                 double overbaseline, double moveright, double strokeSize, Image image) {
+      margin = strokeSize;
       c = symbol;
-      w = width;
-      h = height;
-      h1 = overbaseline;
+      w = width + margin;
+      h = height + margin;
+      h1 = overbaseline + margin;
       w1 = moveright;
       lw = logicalWidth;
+      this.image = image;
     }
 
     @Override
@@ -52,18 +62,20 @@ public class GlyphBank {
 
   public void setFont(javafx.scene.text.Font font) { mFont = font; }
 
-  public void extract(String text) {
+  public void extract(String text, double strokeSize, boolean addSpace) {
     mGlyphs.clear();
+    this.strokeSize = strokeSize;
+    if(addSpace) text += " ";
     char[] chars = text.toCharArray();
     Set<String> uniqueChars = new HashSet<String>();
     Text t = new Text("z");
     t.setFont(mFont);
     t.setBoundsType(TextBoundsType.LOGICAL);
     lineHeight = t.getBoundsInLocal().getHeight();
-    baseLine = t.getBaselineOffset();
+    baseLine = t.getBaselineOffset() + strokeSize;
     t.setTextOrigin(VPos.BASELINE);
     t.setBoundsType(TextBoundsType.VISUAL);
-    double total = 0d;
+    total = 0d;
     for(char c : chars) {
       String cc = String.valueOf(c);
       if(!uniqueChars.contains(cc)) {
@@ -74,12 +86,38 @@ public class GlyphBank {
         t.setTextOrigin(VPos.BASELINE);
         double w = t.getBoundsInLocal().getWidth();
         double h = t.getBoundsInLocal().getHeight();
-        mGlyphs.add(new Glyph(cc, w, lw, h, -t.getLayoutBounds().getMinY(), t.getLayoutBounds().getMinX()));
-        total += w * h;
+        addGlyph(new Glyph(cc, w, lw, h, -t.getLayoutBounds().getMinY(), t.getLayoutBounds().getMinX(), strokeSize, null));
       }
     }
+    updateSize();
+  }
+
+  public void updateSize() {
     size = 1 << (int)Math.ceil(Math.log(Math.sqrt(total)) / Math.log(2));
     while(!checkSize()) size *= 2;
+  }
+
+  public void removeGlyph(Glyph g) { mGlyphs.remove(g); }
+  public void addGlyph(Glyph g) {
+    mGlyphs.add(g);
+    total += g.w * g.h;
+  }
+
+  public Glyph createImageSymbol(String latter, Image image) {
+    double y;
+    if(lineHeight - image.getHeight() < 0)
+      y = Math.floor((lineHeight - image.getHeight()) / 2);
+    else
+      y = Math.floor(lineHeight - image.getHeight()) / 2;
+    Glyph newGlyph = new Glyph(
+        latter,
+        image.getWidth(), image.getWidth(),
+        image.getHeight(), y, 0, 0,
+        image
+    );
+
+    mGlyphs.add(newGlyph);
+    return newGlyph;
   }
 
   protected boolean checkSize() {

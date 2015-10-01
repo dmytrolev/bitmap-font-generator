@@ -43,8 +43,14 @@ public class XmlSaver {
       writer.write(s, 0, s.length());
       writer.newLine();
       for(GlyphBank.Glyph cc : glyphs) {
-        s = String.format(CHAR, cc.c.codePointAt(0), cc.x, cc.y, Math.max(cc.w, 0), Math.max(cc.h, 0), cc.w1,
-                          gb.baseLine-cc.h1, cc.lw, 0, 0, toLetter(cc.c));
+        if(null != cc.image) {
+          System.out.println(gb.baseLine + " " + cc.h1 + " " + cc.h);
+          s = String.format(CHAR, cc.c.codePointAt(0), cc.x, cc.y, Math.max(cc.w, 0), Math.max(cc.h, 0), cc.w1,
+                            cc.h1, cc.lw + cc.margin, 0, 0, toLetter(cc.c));
+        } else {
+          s = String.format(CHAR, cc.c.codePointAt(0), cc.x, cc.y, Math.max(cc.w, 0), Math.max(cc.h, 0), cc.w1,
+                            gb.baseLine-cc.h1, cc.lw + cc.margin, 0, 0, toLetter(cc.c));
+        }
         writer.write(s, 0, s.length());
         writer.newLine();
       }

@@ -18,6 +18,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.TextAlignment;
+import javafx.scene.shape.StrokeLineJoin;
 import javafx.scene.SnapshotParameters;
 import javafx.event.ActionEvent;
 import javafx.geometry.VPos;
@@ -36,7 +37,10 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 
 import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.net.URL;
 
@@ -55,6 +59,7 @@ public class BitmapFontController implements Initializable {
   @FXML public ColorPicker mStrokeColor;
 
   @FXML public TextArea mText;
+  @FXML public CheckBox mAlwaysAddSpace;
   @FXML public TextField mFontSizeText;
   @FXML public ListView mFontsList;
 
@@ -99,6 +104,8 @@ public class BitmapFontController implements Initializable {
     setASCIISymbols();
   }
 
+  protected Map<CustomImageSymbolController, GlyphBank.Glyph> mExtraGlyphs = new HashMap<>();
+
   @FXML
   protected void addCustomSymbol() {
     FileChooser fileChooser = new FileChooser();
@@ -109,8 +116,18 @@ public class BitmapFontController implements Initializable {
     String url = imageFile.toPath().toUri().toString();
 
     CustomImageSymbolController cisc = new CustomImageSymbolController(url, mCustomImageLetter.getText());
-    cisc.callback = mCustomImages.getChildren()::remove;
+    cisc.callback = this::removeCustomSymbol;
     mCustomImages.getChildren().add(cisc);
+    GlyphBank.Glyph newGlyph = mGlyphBank.createImageSymbol(mCustomImageLetter.getText(), cisc.img);
+    mExtraGlyphs.put(cisc, newGlyph);
+    drawText();
+  }
+
+  protected void removeCustomSymbol(CustomImageSymbolController cisc) {
+    mCustomImages.getChildren().remove(cisc);
+    GlyphBank.Glyph g = mExtraGlyphs.remove(cisc);
+    mGlyphBank.removeGlyph(g);
+    drawText();
   }
 
   protected void onFontSelectChange(ObservableValue ov, Object oldv, Object newv) {
@@ -135,7 +152,7 @@ public class BitmapFontController implements Initializable {
   }
 
   public void setASCIISymbols() {
-    mText.setText("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890,.:;?!-_'\"\\|/[]{}+=*&%$@~#^><");
+    mText.setText("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890,.:;?!-_'\"\\|/()[]{}+=*&%$@~#^><");
     drawText();
   }
 
@@ -147,7 +164,18 @@ public class BitmapFontController implements Initializable {
     mGlyphBank.setFont(getFont());
     mGlyphBank.paddingX = getValue(mPaddingXText, 0.0);
     mGlyphBank.paddingY = getValue(mPaddingYText, 0.0);
-    mGlyphBank.extract(mText.getText());
+    mGlyphBank.extract(
+      mText.getText(),
+      mStrokeCb.isSelected() ? getValue(mStrokeWidthText, 1.0) : 0,
+      mAlwaysAddSpace.isSelected()
+    );
+    Set<CustomImageSymbolController> customSymbols = new HashSet<>(mExtraGlyphs.keySet());
+    mExtraGlyphs.clear();
+    for(CustomImageSymbolController cisc : customSymbols) {
+      GlyphBank.Glyph newGlyph = mGlyphBank.createImageSymbol(cisc.letterSymbol, cisc.img);
+      mExtraGlyphs.put(cisc, newGlyph);
+    }
+    mGlyphBank.updateSize();
     // resize canvas
     mCanvas.setWidth(mGlyphBank.size);
     mCanvas.setHeight(mGlyphBank.size);
@@ -218,7 +246,6 @@ public class BitmapFontController implements Initializable {
 
   protected void drawGlyphs(GraphicsContext gc, GlyphBank gb, boolean hideBorder) {
     gc.setFont(getFont());
-    System.out.println("Trying font " + gc.getFont().getName());
     java.awt.Font otherFont = new java.awt.Font(gc.getFont().getName(), java.awt.Font.PLAIN,
                                                 (int)Math.round(gc.getFont().getSize()));
     Set<GlyphBank.Glyph> chars = gb.glyphs();
@@ -239,20 +266,30 @@ public class BitmapFontController implements Initializable {
       gc.setTextBaseline(VPos.BASELINE);
       double x = cc.x - cc.w1;
       double y = cc.y + cc.h1;
+      if(null != cc.image) {
+        gc.drawImage(cc.image, x, y - cc.h1);
+        if(mShowBorderCb.isSelected() && !hideBorder) {
+          gc.setLineWidth(1d);
+          gc.setStroke(Color.GREEN);
+          gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
+        }
+        continue;
+      }
       if(mEffect) {
         gc.setEffect(new Shadow(5, Color.BLACK));
         gc.fillText(cc.c, x, y);
         gc.setEffect(null);
       }
-      if(mFillCb.isSelected()) {
-        gc.setFill(mFillColor.getValue());
-        gc.fillText(cc.c, x, y);
-      }
       Double strokeWidth = getValue(mStrokeWidthText, 1.0);
       if(mStrokeCb.isSelected() && strokeWidth > 0) {
         gc.setLineWidth(strokeWidth);
+        gc.setLineJoin(StrokeLineJoin.ROUND);
         gc.setStroke(mStrokeColor.getValue());
-        gc.strokeText(cc.c, x, y);
+        gc.strokeText(cc.c, x + Math.floor(cc.margin / 2), y);
+      }
+      if(mFillCb.isSelected()) {
+        gc.setFill(mFillColor.getValue());
+        gc.fillText(cc.c, x + Math.floor(cc.margin / 2), y);
       }
       if(mShowBorderCb.isSelected() && !hideBorder) {
         gc.setLineWidth(1d);
