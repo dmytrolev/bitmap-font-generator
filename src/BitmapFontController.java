@@ -14,11 +14,13 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.effect.Shadow;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.TextAlignment;
 import javafx.scene.shape.StrokeLineJoin;
+import javafx.scene.shape.StrokeType;
 import javafx.scene.SnapshotParameters;
 import javafx.event.ActionEvent;
 import javafx.geometry.VPos;
@@ -70,6 +72,12 @@ public class BitmapFontController implements Initializable {
   @FXML public TextField mPaddingXText;
   @FXML public TextField mPaddingYText;
 
+  @FXML public TextField mGlyphXMove;
+  @FXML public TextField mGlyphDeltaWidth;
+  @FXML public TextField mGlyphName;
+
+  @FXML public TextField mLetterSpacing;
+
   @FXML public Canvas mCanvas;
 
   @FXML public Stage mStage;
@@ -99,8 +107,11 @@ public class BitmapFontController implements Initializable {
     mFontsList.setItems(fonts);
     mFontsList.getSelectionModel().selectedItemProperty().addListener(this::onFontSelectChange);
     mSubFont.getSelectionModel().selectedItemProperty().addListener(this::onSubFontSelectChange);
-    mFillColor.setValue(Color.BLACK);
+    mFillColor.setValue(Color.WHITE);
+    mStrokeColor.setValue(Color.BLACK);
 
+    // setTestData();
+    coreImportFont(FileSystems.getDefault().getPath("C:/Users/dlev/Downloads/framd.ttf").toFile());
     setASCIISymbols();
   }
 
@@ -156,6 +167,65 @@ public class BitmapFontController implements Initializable {
     drawText();
   }
 
+  public void setTestData() {
+    mText.setText("StFi");
+    drawText();
+  }
+
+  protected String mSelectedGlyph = null;
+
+  public void selectGlyph(MouseEvent event) {
+    mSelectedGlyph = null;
+    mGlyphName.setText("");
+    mGlyphXMove.setText("0.0");
+    mGlyphDeltaWidth.setText("0.0");
+    double x = event.getX();
+    double y = event.getY();
+    System.out.printf("Click: %.2f %.2f\n", x, y);
+    Set<GlyphBank.Glyph> chars = mGlyphBank.glyphs();
+    for(GlyphBank.Glyph cc : chars) {
+      if(x >= cc.x && x <= cc.x + Math.ceil(cc.w) && y >= cc.y && y <= cc.y + Math.ceil(cc.h)) {
+        mSelectedGlyph = cc.c;
+        mGlyphName.setText(mSelectedGlyph);
+        if(mGlyphBank.modifiers.containsKey(mSelectedGlyph)) {
+          GlyphBank.GlyphModificator modifier = mGlyphBank.modifiers.get(mSelectedGlyph);
+          mGlyphXMove.setText(String.format("%.1f", modifier.deltaX));
+          mGlyphDeltaWidth.setText(String.format("%.1f", modifier.deltaWidth));
+        }
+        break;
+      }
+    }
+    mGlyphXMove.disableProperty().setValue(null == mSelectedGlyph);
+    mGlyphDeltaWidth.disableProperty().setValue(null == mSelectedGlyph);
+    drawText();
+  }
+
+  public void glyphDataChange(ActionEvent event) {
+    if(null == mSelectedGlyph) return;
+
+    double dx = getValue(mGlyphXMove, 0.0);
+    double dw = getValue(mGlyphDeltaWidth, 0.0);
+    boolean modifies = dx != 0.0d || dw != 0.0d;
+
+    GlyphBank.GlyphModificator modifier = null;
+    if(mGlyphBank.modifiers.containsKey(mSelectedGlyph)) {
+      if(!modifies) {
+        mGlyphBank.modifiers.remove(mSelectedGlyph);
+        return;
+      }
+      modifier = mGlyphBank.modifiers.get(mSelectedGlyph);
+    } else {
+      if(!modifies) return;
+      modifier = new GlyphBank.GlyphModificator(mSelectedGlyph);
+      mGlyphBank.modifiers.put(mSelectedGlyph, modifier);
+    }
+
+    modifier.deltaWidth = dw;
+    modifier.deltaX = dx;
+
+    drawText();
+  }
+
   public void drawText(ActionEvent event) { drawText(); }
 
   public void drawText() {
@@ -164,10 +234,11 @@ public class BitmapFontController implements Initializable {
     mGlyphBank.setFont(getFont());
     mGlyphBank.paddingX = getValue(mPaddingXText, 0.0);
     mGlyphBank.paddingY = getValue(mPaddingYText, 0.0);
+    mGlyphBank.letterSpacing = getValue(mLetterSpacing, 0.0);
     mGlyphBank.extract(
       mText.getText(),
-      mStrokeCb.isSelected() ? getValue(mStrokeWidthText, 1.0) : 0,
-      mAlwaysAddSpace.isSelected()
+      mAlwaysAddSpace.isSelected(),
+      mStrokeCb.isSelected() ? getValue(mStrokeWidthText, 1.0) : 0.0
     );
     Set<CustomImageSymbolController> customSymbols = new HashSet<>(mExtraGlyphs.keySet());
     mExtraGlyphs.clear();
@@ -238,6 +309,9 @@ public class BitmapFontController implements Initializable {
     fileChooser.setTitle("Load font file");
     File fontFile = fileChooser.showOpenDialog(mStage);
     if(null == fontFile) return;
+  }
+
+  protected void coreImportFont(File fontFile) {
 
     Font newFont = Font.loadFont(fontFile.toURI().toString(), 20d);
     mFontsList.getItems().add(newFont.getFamily());
@@ -250,51 +324,54 @@ public class BitmapFontController implements Initializable {
                                                 (int)Math.round(gc.getFont().getSize()));
     Set<GlyphBank.Glyph> chars = gb.glyphs();
     for(GlyphBank.Glyph cc : chars) {
-
-      FontRenderContext frc = new FontRenderContext(new AffineTransform(1,0,0,1,0,0), false, false);
-      GlyphVector glyphs = otherFont.createGlyphVector(frc, cc.c.toCharArray());
-      GlyphMetrics metrix = glyphs.getGlyphMetrics(0);
-      // System.out.println(String.format("%6$b advance=%1$.2f advanceX=%2$.2f advanceY=%3$.2g LSB=%4$.2g RSB=%5$.2g, " +
-      //                                  "%7$b %8$b %9$b %10$b X=%11$.2f Y=%12$.2f %13$c w=%14$.2f h=%15$.2f",
-      //                                  metrix.getAdvance(), metrix.getAdvanceX(), metrix.getAdvanceY(),
-      //                                  metrix.getLSB(), metrix.getRSB(), otherFont.canDisplay(cc.c.toCharArray()[0]),
-      //                                  metrix.isCombining(), metrix.isComponent(),
-      //                                  metrix.isLigature(), metrix.isStandard(),
-      //                                  metrix.getBounds2D().getX(), metrix.getBounds2D().getY(), cc.c.toCharArray()[0],
-      //                                  metrix.getBounds2D().getWidth(), metrix.getBounds2D().getHeight()));
+      GlyphBank.GlyphModificator modifier = mGlyphBank.modifiers.get(cc.c);
 
       gc.setTextBaseline(VPos.BASELINE);
       double x = cc.x - cc.w1;
-      double y = cc.y + cc.h1;
+      double y = cc.y + Math.ceil(cc.h1);
+      double gx = x;
+      double gy = y;
+      if(null != modifier) {
+        gx += modifier.deltaX;
+        gy += modifier.deltaY;
+      }
       if(null != cc.image) {
-        gc.drawImage(cc.image, x, y - cc.h1);
+        gc.drawImage(cc.image, gx, gy - Math.ceil(cc.h1));
         if(mShowBorderCb.isSelected() && !hideBorder) {
           gc.setLineWidth(1d);
-          gc.setStroke(Color.GREEN);
-          gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
+          if(null != mSelectedGlyph && mSelectedGlyph.equals(cc.c)) gc.setStroke(Color.RED);
+          else gc.setStroke(null == modifier ? Color.GREEN : Color.CYAN);
+          if(null != modifier)
+            gc.strokeRect(cc.x,cc.y,cc.w + modifier.deltaWidth,cc.h);
+          else gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
         }
         continue;
-      }
-      if(mEffect) {
-        gc.setEffect(new Shadow(5, Color.BLACK));
-        gc.fillText(cc.c, x, y);
-        gc.setEffect(null);
       }
       Double strokeWidth = getValue(mStrokeWidthText, 1.0);
       if(mStrokeCb.isSelected() && strokeWidth > 0) {
         gc.setLineWidth(strokeWidth);
         gc.setLineJoin(StrokeLineJoin.ROUND);
         gc.setStroke(mStrokeColor.getValue());
-        gc.strokeText(cc.c, x + Math.floor(cc.margin / 2), y);
+        gc.strokeText(cc.c, gx, gy);
+      }
+      if(mEffect) {
+        gc.setEffect(new Shadow(5, Color.BLACK));
+        gc.fillText(cc.c, gx, gy);
+        gc.setEffect(null);
       }
       if(mFillCb.isSelected()) {
         gc.setFill(mFillColor.getValue());
-        gc.fillText(cc.c, x + Math.floor(cc.margin / 2), y);
+        gc.fillText(cc.c, gx, gy);
       }
-      if(mShowBorderCb.isSelected() && !hideBorder) {
-        gc.setLineWidth(1d);
-        gc.setStroke(Color.GREEN);
-        gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
+      if(!hideBorder) {
+        if(mShowBorderCb.isSelected() || (null != mSelectedGlyph && mSelectedGlyph.equals(cc.c))) {
+          gc.setLineWidth(1d);
+          if(null != mSelectedGlyph && mSelectedGlyph.equals(cc.c)) gc.setStroke(Color.RED);
+          else gc.setStroke(null == modifier ? Color.GREEN : Color.CYAN);
+          if(null != modifier) {
+            gc.strokeRect(cc.x, cc.y, Math.ceil(cc.w) + modifier.deltaWidth, Math.ceil(cc.h));
+          } else gc.strokeRect(cc.x, cc.y, Math.ceil(cc.w), Math.ceil(cc.h));
+        }
       }
     }
   }
@@ -302,8 +379,11 @@ public class BitmapFontController implements Initializable {
   protected void drawBoundingBoxes(GraphicsContext gc, GlyphBank gb) {
     gc.setFont(getFont());
     for(GlyphBank.Glyph cc : gb.glyphs()) {
+      GlyphBank.GlyphModificator modifier = gb.modifiers.get(cc.c);
       gc.setLineWidth(1d);
-      gc.strokeRect(cc.x,cc.y,cc.w,cc.h);
+      if(null != modifier) {
+        gc.strokeRect(cc.x, cc.y, Math.ceil(cc.w) + modifier.deltaWidth, Math.ceil(cc.h));
+      } else gc.strokeRect(cc.x, cc.y, Math.ceil(cc.w), Math.ceil(cc.h));
     }
   }
 
@@ -320,9 +400,10 @@ public class BitmapFontController implements Initializable {
     if(null != sizeText && !sizeText.isEmpty()) {
       try {
         size = Double.parseDouble(sizeText);
-      } catch(NumberFormatException e) { }
+      } catch(NumberFormatException e) {
+        size = defVal;
+      }
     }
-    if(size < 0.0) size = defVal;
     return size;
   }
 }
