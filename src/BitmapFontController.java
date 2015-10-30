@@ -111,7 +111,7 @@ public class BitmapFontController implements Initializable {
     mStrokeColor.setValue(Color.BLACK);
 
     // setTestData();
-    coreImportFont(FileSystems.getDefault().getPath("C:/Users/dlev/Downloads/framd.ttf").toFile());
+    // coreImportFont(FileSystems.getDefault().getPath("C:/Users/dlev/Downloads/framd.ttf").toFile());
     setASCIISymbols();
   }
 
