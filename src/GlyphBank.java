@@ -125,7 +125,7 @@ public class GlyphBank {
         double w = t.getBoundsInLocal().getWidth();
         double h = t.getBoundsInLocal().getHeight();
         // Glyph glyph = new Glyph(cc, w, Math.max(w + minX, lw), h, minY, minX, null);
-        Glyph glyph = new Glyph(cc, w, lw + minX, h, minY, minX, null);
+        Glyph glyph = new Glyph(cc, w, lw, h, minY, minX, null);
         mGlyphs.add(glyph);
         glyphsMap.put(cc, glyph);
         total += w * h;
@@ -140,7 +140,7 @@ public class GlyphBank {
         Glyph right = glyphsMap.get(c2);
         t.setText(c1 + c2);
         double w = t.getBoundsInLocal().getWidth();
-        mKerning.add(new Kerning(c1, c2, left.w + right.w + right.w1 - w));
+        mKerning.add(new Kerning(c1, c2, left.w + right.w + right.w1 - left.w1 - w));
       }
     }
   }

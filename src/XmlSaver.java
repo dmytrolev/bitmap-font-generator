@@ -25,7 +25,7 @@ public class XmlSaver {
     "xoffset=\"%.0f\" yoffset=\"%.0f\" xadvance=\"%.0f\" page=\"%d\" chnl=\"%d\" letter=\"%s\" />";
   protected final String CHARS_END = "  </chars>";
   protected final String KERNINGS = "  <kernings>";
-  protected final String KERNING = "<kerning first=\"%d\" second=\"%d\" amount=\"%.0f\"/>";
+  protected final String KERNING = "<kerning first=\"%d\" second=\"%d\" amount=\"%d\"/>";
   protected final String KERNINGS_END = "  </kernings>";
   protected final String FOOTER = "</font>";
 
@@ -76,7 +76,8 @@ public class XmlSaver {
       writer.write(s, 0, s.length());
       writer.newLine();
       for(GlyphBank.Kerning k : kernings) {
-        s = String.format(KERNING, k.left.codePointAt(0), k.right.codePointAt(0), -k.kerning);
+        if(Math.round(k.kerning) == 0) continue;
+        s = String.format(KERNING, k.left.codePointAt(0), k.right.codePointAt(0), Math.round(k.kerning));
         writer.write(s, 0, s.length());
         writer.newLine();
       }
